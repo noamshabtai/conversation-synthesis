@@ -1,0 +1,161 @@
+
+output: ../conference_input.wav
+sampling_frequency: 16000
+fade_out: 0.05
+
+speakers:
+  dana:
+    channel: 0
+    voice: en_US-amy-medium
+  ravi:
+    channel: 1
+    voice: en_GB-alan-medium
+  sam:
+    channel: 2
+    voice: en_US-ryan-medium
+
+utterances:
+  - id: roll_call
+    speaker: dana
+    text: "Okay, that's everyone. Ravi, Sam, can you both hear me?"
+
+  - id: loud_and_clear
+    speaker: ravi
+    text: "Loud and clear."
+    gap: -0.4
+
+  - id: on_mute
+    speaker: dana
+    text: "Sam? I think you're on mute."
+    gap: 0.4
+
+  - id: unmuted
+    speaker: sam
+    text: "Sorry, sorry. Is this better? My headset keeps grabbing the laptop mic."
+    gap: 0.2
+
+  - id: thats_better
+    speaker: dana
+    text: "That's better."
+    after: unmuted
+    offset: 2.6
+
+  - id: agenda
+    speaker: dana
+    text: "Okay, quick status and then I'll let you both go. Ravi, where are we on the eight kilohertz path?"
+    gap: -0.3
+
+  - id: regression
+    speaker: ravi
+    text: "Mostly good. The resampler landed Tuesday, tests are green. But I'm seeing a latency regression on the binaural mix. About forty milliseconds."
+    gap: -0.5
+
+  - id: backchannel
+    speaker: sam
+    text: "Mm-hm."
+    after: regression
+    offset: 3.0
+
+  - id: dana_follows
+    speaker: dana
+    text: "Right."
+    after: regression
+    offset: 6.4
+
+  - id: sam_agrees
+    speaker: sam
+    text: "Yeah, I saw that too."
+    after: regression
+    offset: 8.6
+
+  - id: forty
+    speaker: dana
+    text: "Forty? That's a lot."
+    gap: -0.3
+
+  - id: three_channels
+    speaker: ravi
+    text: "It is. And it only shows up with three channels, not two, which is"
+    gap: -0.2
+    keep: 0.62
+
+  - id: buffer_hunch
+    speaker: sam
+    text: "Wait, is that the buffer? We doubled the buffer size for the three channel case."
+    gap: -1.1
+
+  - id: dana_reacts
+    speaker: dana
+    text: "Oh, that would explain it."
+    after: buffer_hunch
+    offset: 2.4
+
+  - id: conceded
+    speaker: ravi
+    text: "Yeah. Yeah, that would do it."
+    gap: -0.2
+
+  - id: check_today
+    speaker: dana
+    text: "Can you check it today?"
+    gap: 0.1
+
+  - id: ravi_volunteers
+    speaker: ravi
+    text: "Yeah, I'll"
+    gap: -0.1
+    keep: 0.7
+
+  - id: sam_volunteers
+    speaker: sam
+    text: "I can take that one, I wrote"
+    after: ravi_volunteers
+    offset: 0.05
+    keep: 0.55
+
+  - id: go_ahead
+    speaker: ravi
+    text: "Sorry, go ahead."
+    gap: 0.1
+
+  - id: no_you_go
+    speaker: sam
+    text: "No, no. You go."
+    gap: -0.6
+
+  - id: ravi_plan
+    speaker: ravi
+    text: "I was just going to say, I'll drop the buffer back and re-run the timing test. Should take an hour."
+    gap: -0.2
+
+  - id: sam_acks
+    speaker: sam
+    text: "Makes sense."
+    after: ravi_plan
+    offset: 3.4
+
+  - id: sam_plan
+    speaker: sam
+    text: "And I'll look at why the two channel case doesn't hit it. There might be something in the overlap-add."
+    gap: -0.5
+
+  - id: dana_notes
+    speaker: dana
+    text: "Good."
+    after: sam_plan
+    offset: 2.2
+
+  - id: wrap_up
+    speaker: dana
+    text: "Great. Let's regroup Thursday. Thanks, both."
+    gap: 0.1
+
+  - id: thanks
+    speaker: ravi
+    text: "Thanks."
+    gap: -0.2
+
+  - id: bye
+    speaker: sam
+    text: "Bye."
+    gap: -0.4

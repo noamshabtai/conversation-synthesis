@@ -1,0 +1,315 @@
+
+output: ../gaming_input.wav
+sampling_frequency: 16000
+fade_out: 0.05
+
+styles:
+  normal:
+    volume: 0.45
+    pitch: 1.05
+    drive: 1.8
+    noise: 0.75
+    noise_w: 0.9
+    normalize: false
+  shout:
+    volume: 1.0
+    rate: 0.9
+    pitch: 1.12
+    drive: 3.5
+    noise: 0.85
+    noise_w: 1.0
+    normalize: false
+  mutter:
+    volume: 0.25
+    rate: 1.04
+    pitch: 1.0
+    drive: 1.2
+    noise: 0.7
+    noise_w: 0.85
+    normalize: false
+
+speakers:
+  nova:
+    channel: 0
+    voice: en_US-ryan-medium
+    pitch: 1.25
+  rook:
+    channel: 1
+    voice: en_GB-alan-medium
+    pitch: 1.35
+  tank:
+    channel: 2
+    voice: en_US-danny-low
+    pitch: 1.3
+  pixel:
+    channel: 3
+    voice: en_GB-cori-medium
+    pitch: 1.0
+  zed:
+    channel: 4
+    voice: en_US-joe-medium
+    pitch: 1.35
+
+utterances:
+  - id: rotate
+    speaker: nova
+    text: "Alright, we're up. Rotating B through the tunnels, stay tight and stay off the open ground."
+
+  - id: copy
+    speaker: rook
+    text: "Copy."
+    after: rotate
+    offset: 3.2
+
+  - id: contact
+    speaker: tank
+    text: "Contact! Contact left, two of them up on the ridge!"
+    style: shout
+    gap: -0.7
+
+  - id: i_see_them
+    speaker: pixel
+    text: "I see them, I see them, hold your fire!"
+    style: shout
+    after: contact
+    offset: 0.5
+
+  - id: scoped
+    speaker: rook
+    text: "Hold on, I'm scoped. Give me a second."
+    gap: -1.0
+
+  - id: behind_you
+    speaker: zed
+    text: "Behind you! Rook, behind you, he's on your back!"
+    style: shout
+    after: scoped
+    offset: 0.6
+
+  - id: flanking
+    speaker: tank
+    text: "He's flanking! Damn it, he's already inside the tunnel!"
+    style: shout
+    gap: -0.9
+
+  - id: bloody_hell
+    speaker: rook
+    text: "Bloody hell."
+    gap: -0.3
+
+  - id: regroup
+    speaker: nova
+    text: "Okay, okay, regroup on me. Zed, where are you?"
+    gap: -0.4
+
+  - id: dead
+    speaker: zed
+    text: "Dead. I'm dead. He melted me through the crates."
+    style: mutter
+    after: regroup
+    offset: 1.4
+
+  - id: got_me_too
+    speaker: pixel
+    text: "He got me too! What the hell was that guy even shooting?"
+    style: shout
+    gap: -0.8
+
+  - id: wall_hacks
+    speaker: tank
+    text: "Wall hacks! No way, no way he sees us through that wall!"
+    style: shout
+    gap: -0.6
+
+  - id: no_hacks
+    speaker: rook
+    text: "He does not have wall hacks. You walked into the open, Tank."
+    gap: -0.5
+
+  - id: i_did_not
+    speaker: tank
+    text: "I did not!"
+    after: no_hacks
+    offset: 2.4
+    style: shout
+
+  - id: you_did
+    speaker: pixel
+    text: "You absolutely did, I watched you do it, you sprinted straight down the middle."
+    gap: -1.2
+
+  - id: laughing
+    speaker: zed
+    text: "Straight down the middle, yeah."
+    style: mutter
+    after: you_did
+    offset: 1.6
+
+  - id: focus
+    speaker: nova
+    text: "Guys! Focus, please. Sixty seconds on the objective."
+    style: shout
+    gap: -1.0
+
+  - id: grab_tags
+    speaker: zed
+    text: "Someone grab my tags, they're by the crates, I can still respawn."
+    gap: -0.4
+
+  - id: on_it
+    speaker: pixel
+    text: "On it, on it, moving."
+    gap: -0.7
+
+  - id: smoke
+    speaker: tank
+    text: "Smoke's out! Push, push, push!"
+    style: shout
+    gap: -0.5
+
+  - id: not_yet
+    speaker: rook
+    text: "Not yet, wait for the smoke to"
+    gap: -0.6
+    keep: 0.55
+
+  - id: too_late
+    speaker: nova
+    text: "He's already gone. Tank, wait!"
+    style: shout
+    after: not_yet
+    offset: 0.4
+
+  - id: tank_charges
+    speaker: tank
+    text: "I'm in, I'm in! Two down, two down, where's my crossfire?"
+    style: shout
+    gap: -0.9
+
+  - id: reloading
+    speaker: pixel
+    text: "Reloading, reloading!"
+    style: shout
+    after: tank_charges
+    offset: 1.8
+
+  - id: rook_calls
+    speaker: rook
+    text: "One left, low health, he's running to the far crates. Nova, cut him off."
+    gap: -0.8
+
+  - id: on_him
+    speaker: nova
+    text: "I'm on him."
+    after: rook_calls
+    offset: 2.9
+
+  - id: zed_backseat
+    speaker: zed
+    text: "He's going to heal, he always heals behind that pillar."
+    style: mutter
+    gap: -1.1
+
+  - id: shut_up_zed
+    speaker: tank
+    text: "You're dead, Zed, stop backseating!"
+    style: shout
+    gap: -0.7
+
+  - id: pixel_laughs
+    speaker: pixel
+    text: "Oh, that's rich, coming from you."
+    after: shut_up_zed
+    offset: 0.6
+
+  - id: got_him
+    speaker: nova
+    text: "Got him! That's the round, that's the round!"
+    style: shout
+    gap: -0.9
+
+  - id: cheer_tank
+    speaker: tank
+    text: "Let's go! Let's go, let's go, let's go!"
+    style: shout
+    after: got_him
+    offset: 0.5
+
+  - id: cheer_pixel
+    speaker: pixel
+    text: "Oh my God, that was so clutch! That was so clutch!"
+    style: shout
+    after: got_him
+    offset: 0.8
+
+  - id: rook_dry
+    speaker: rook
+    text: "Well. Only took us the entire round."
+    gap: -1.4
+
+  - id: zed_complains
+    speaker: zed
+    text: "And nobody grabbed my tags. Cheers, guys. Really."
+    style: mutter
+    gap: -0.9
+
+  - id: sorry_zed
+    speaker: pixel
+    text: "Sorry, Zed! Next round, promise."
+    gap: -0.6
+
+  - id: next_map
+    speaker: nova
+    text: "Alright, good work. Same squad, next map? Tank, stay off the open ground this time."
+    gap: -0.3
+
+  - id: tank_grumbles
+    speaker: tank
+    text: "Yeah, yeah, whatever."
+    after: next_map
+    offset: 3.6
+
+  - id: gg
+    speaker: rook
+    text: "Good game."
+    gap: -0.2
+
+  - id: gg_zed
+    speaker: zed
+    text: "G G."
+    gap: -0.5
+
+background:
+  channel: 5
+  level: 0.5
+  seed: 0
+  ambience:
+    level: 0.22
+    breath: 0.2
+    rumble_period: 9.0
+  events:
+    - {sound: footsteps, after: rotate, offset: 0.4, steps: 9, rate: 2.0, level: 0.3}
+    - {sound: gunshot, after: copy, offset: 1.1, brightness: 800, tail: 1.2, level: 0.25}
+
+    - {sound: burst, after: contact, offset: -0.4, shots: 6, rate: 10.0, level: 0.85}
+    - {sound: ricochet, after: contact, offset: 0.3, level: 0.5}
+    - {sound: burst, after: i_see_them, offset: 0.2, shots: 4, rate: 11.0, level: 0.7}
+    - {sound: gunshot, after: scoped, offset: 0.8, brightness: 3600, tail: 0.35, level: 0.9}
+    - {sound: burst, after: behind_you, offset: 0.1, shots: 7, rate: 12.0, level: 0.8}
+    - {sound: ricochet, after: behind_you, offset: 0.5, level: 0.55}
+    - {sound: burst, after: flanking, offset: -0.2, shots: 8, rate: 12.0, level: 0.85}
+    - {sound: burst, after: bloody_hell, offset: 0.1, shots: 5, rate: 11.0, level: 0.75}
+
+    - {sound: burst, after: wall_hacks, offset: 0.6, shots: 5, rate: 8.0, brightness: 1000, tail: 1.0, level: 0.3}
+    - {sound: burst, after: you_did, offset: 1.0, shots: 4, rate: 7.0, brightness: 900, tail: 1.2, level: 0.28}
+
+    - {sound: footsteps, after: grab_tags, offset: 0.3, steps: 7, rate: 2.4, level: 0.35}
+    - {sound: footsteps, after: on_it, offset: 0.1, steps: 8, rate: 2.6, level: 0.4}
+    - {sound: explosion, after: smoke, offset: -0.2, decay: 0.35, debris: 0.15, level: 0.65}
+    - {sound: burst, after: too_late, offset: 0.3, shots: 6, rate: 11.0, level: 0.8}
+    - {sound: burst, after: tank_charges, offset: 0.0, shots: 9, rate: 13.0, level: 0.95}
+    - {sound: ricochet, after: tank_charges, offset: 0.9, level: 0.6}
+    - {sound: reload, after: reloading, offset: 0.2, level: 0.5}
+    - {sound: burst, after: rook_calls, offset: 0.4, shots: 4, rate: 9.0, brightness: 1600, tail: 0.6, level: 0.5}
+    - {sound: footsteps, after: on_him, offset: 0.1, steps: 6, rate: 3.0, level: 0.4}
+    - {sound: gunshot, after: got_him, offset: -0.5, brightness: 3800, tail: 0.4, level: 1.0}
