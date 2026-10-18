@@ -3,16 +3,18 @@ output: ../conference_input.wav
 sampling_frequency: 16000
 fade_out: 0.05
 
+# Kokoro voices: the first letter is the accent (a American, b British), the
+# second the voice (f female, m male). Every one is Apache-2.0.
 speakers:
   dana:
     channel: 0
-    voice: en_US-amy-medium
+    voice: af_heart
   ravi:
     channel: 1
-    voice: en_GB-alan-medium
+    voice: bm_george
   sam:
     channel: 2
-    voice: en_US-ryan-medium
+    voice: am_michael
 
 utterances:
   - id: roll_call
