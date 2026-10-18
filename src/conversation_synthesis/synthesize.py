@@ -1,4 +1,13 @@
+# /// script
+# requires-python = ">=3.10,<3.14"
+# dependencies = ["kokoro-onnx>=0.4", "numpy", "pyyaml", "scipy"]
+# ///
 """Render a multi-talker script into a multi-channel demo input.
+
+Voices are Kokoro's (Apache-2.0, trained only on permissively licensed audio),
+so the result may be published, commercially too. kokoro-onnx supports no
+Python past 3.13 yet, so this script carries its own requirements above and
+`uv run scripts/create_input.py` runs it apart from the project's 3.14.
 
 Each participant is synthesized separately and written to its own channel, as
 if every leg of the call had been recorded locally. Channels therefore contain
@@ -22,14 +31,17 @@ import wave
 
 import game_background
 import numpy as np
-import piper
-import piper.download_voices
 import scipy.signal
 import yaml
 
 SCRIPT_DIR = pathlib.Path(__file__).parent
 DEFAULT_SCRIPT_PATH = SCRIPT_DIR / "conference.yaml"
 VOICES_DIR = SCRIPT_DIR / "voices"
+MODEL_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
+MODEL_FILE = "kokoro-v1.0.onnx"
+VOICES_FILE = "voices-v1.0.bin"
+# A Kokoro voice's first letter is its accent.
+LANGUAGE_OF_ACCENT = {"a": "en-us", "b": "en-gb"}
 DTYPE = np.int16
 PEAK = 0.7
 PITCH_RESOLUTION = 100
@@ -37,40 +49,29 @@ DOWNLOAD_ATTEMPTS = 3
 DOWNLOAD_TIMEOUT = 30
 
 
-def voice_url(voice, extension):
-    """Build the upstream URL for one of a voice's files.
+def model_url(name):
+    """Build the URL of one of Kokoro's model files.
 
-    The scheme is checked rather than trusted: the template comes from piper, so
-    an upstream change to it decides what this script would otherwise open, and
-    urlopen honours `file:` as readily as `https:`.
+    The scheme is checked rather than trusted: urlopen honours `file:` as
+    readily as `https:`.
     """
-    lang_code, voice_name, voice_quality = voice.split("-")
-    url = piper.download_voices.URL_FORMAT.format(
-        lang_family=lang_code.split("_")[0],
-        lang_code=lang_code,
-        voice_name=voice_name,
-        voice_quality=voice_quality,
-        extension=extension,
-    )
+    url = MODEL_URL + name
     if urllib.parse.urlparse(url).scheme != "https":
-        raise ValueError(f"Refusing to fetch a voice over a non-HTTPS URL: {url}")
+        raise ValueError(f"Refusing to fetch a model over a non-HTTPS URL: {url}")
     return url
 
 
-def download(voice, extension):
-    """Fetch a voice file, verifying the size so a cut transfer is retried.
+def download(name):
+    """Fetch a model file, verifying the size so a cut transfer is retried.
 
-    Piper's own downloader neither checks the length nor resumes, and silently
-    leaves a truncated model behind that only fails later at load time. The
-    timeout matters as much as the retry: without it a stalled transfer never
-    raises, so the whole render just hangs on a half-written model.
+    A truncated model only fails later, at load time. The timeout matters as
+    much as the retry: without it a stalled transfer never raises, so the whole
+    render just hangs on a half-written model.
     """
-    path = VOICES_DIR / f"{voice}{extension}"
+    path = VOICES_DIR / name
     for attempt in range(DOWNLOAD_ATTEMPTS):
         try:
-            with urllib.request.urlopen(  # noqa: S310
-                voice_url(voice, extension), timeout=DOWNLOAD_TIMEOUT
-            ) as response:
+            with urllib.request.urlopen(model_url(name), timeout=DOWNLOAD_TIMEOUT) as response:  # noqa: S310
                 expected_size = int(response.headers["Content-Length"])
                 if path.exists() and path.stat().st_size == expected_size:
                     return path
@@ -88,16 +89,29 @@ def download(voice, extension):
     raise RuntimeError(f"Could not download {path.name} in one piece after {DOWNLOAD_ATTEMPTS} attempts")
 
 
-def load_voices(speakers):
-    """Download each speaker's voice model if needed and load it."""
+def language_of(voice):
+    """Kokoro's language for a voice, from its accent letter: af_heart is American."""
+    accent = voice[0]
+    if accent not in LANGUAGE_OF_ACCENT:
+        raise ValueError(f"{voice} is not an English Kokoro voice (expected one starting with a or b)")
+    return LANGUAGE_OF_ACCENT[accent]
+
+
+def load_kokoro(speakers):
+    """Download Kokoro if needed and load it, checking every speaker's voice exists.
+
+    One model holds every voice, so a speaker only names theirs.
+    """
+    from kokoro_onnx import Kokoro  # noqa: PLC0415 -- only rendering needs it
+
     VOICES_DIR.mkdir(exist_ok=True)
-    voices = {}
+    kokoro = Kokoro(str(download(MODEL_FILE)), str(download(VOICES_FILE)))
+    known = set(kokoro.get_voices())
     for name, speaker in speakers.items():
-        model_path = download(speaker["voice"], ".onnx")
-        download(speaker["voice"], ".onnx.json")
-        voices[name] = piper.PiperVoice.load(model_path)
-        print(f"Loaded {speaker['voice']} for {name}")
-    return voices
+        if speaker["voice"] not in known:
+            raise ValueError(f"{name}'s voice {speaker['voice']} is not one of Kokoro's")
+        language_of(speaker["voice"])
+    return kokoro
 
 
 def pitch_shift(audio, pitch):
@@ -105,7 +119,7 @@ def pitch_shift(audio, pitch):
 
     Formants moving with the pitch is exactly what makes the result sound like a
     younger speaker rather than a sped-up adult, and the caller has already asked
-    piper for a proportionally slower delivery, so the line still takes as long
+    Kokoro for a proportionally slower delivery, so the line still takes as long
     as the script's timing expects.
     """
     return scipy.signal.resample_poly(audio, PITCH_RESOLUTION, round(PITCH_RESOLUTION * pitch))
@@ -120,26 +134,26 @@ def overdrive(audio, drive):
     return np.tanh(drive * audio) / np.tanh(drive)
 
 
-def synthesize(voice, text, sampling_frequency, style):
+def synthesize(kokoro, voice, text, sampling_frequency, style):
     """Synthesize text in the given vocal style and resample it to the target sampling frequency.
 
-    A style that switches piper's per-utterance normalization off is what lets a
-    shout stay louder than the line it interrupts: normalized utterances all come
-    back at full scale, so only their timing would differ.
+    `rate` and `pitch` both stretch the delivery, as a length factor: Kokoro's
+    speed is its inverse. Each utterance is brought to full scale unless the
+    style switches that off, which is what lets a shout stay louder than the
+    line it interrupts: normalized utterances all come back at full scale, so
+    only their timing would differ. `volume` scales what is left.
     """
     pitch = style.get("pitch", 1.0)
-    synthesis_config = piper.SynthesisConfig(
-        length_scale=style.get("rate", 1.0) * pitch,
-        noise_scale=style.get("noise"),
-        noise_w_scale=style.get("noise_w"),
-        volume=style.get("volume", 1.0),
-        normalize_audio=style.get("normalize", True),
+    audio, rate = kokoro.create(
+        text, voice=voice, speed=1.0 / (style.get("rate", 1.0) * pitch), lang=language_of(voice)
     )
-    chunks = list(voice.synthesize(text, syn_config=synthesis_config))
-    audio = np.concatenate([chunk.audio_float_array for chunk in chunks])
+    audio = np.asarray(audio, dtype=np.float64)
+    if style.get("normalize", True):
+        audio = audio / np.abs(audio).max()
+    audio = style.get("volume", 1.0) * audio
     audio = pitch_shift(audio, pitch)
     audio = overdrive(audio, style["drive"]) if "drive" in style else audio
-    return scipy.signal.resample_poly(audio, sampling_frequency, chunks[0].sample_rate)
+    return scipy.signal.resample_poly(audio, sampling_frequency, rate)
 
 
 def truncate(audio, keep, fade_out, sampling_frequency):
@@ -151,7 +165,7 @@ def truncate(audio, keep, fade_out, sampling_frequency):
     return audio
 
 
-def render_utterances(script, voices):
+def render_utterances(script, kokoro):
     """Render every utterance, keyed by id."""
     sampling_frequency = script["sampling_frequency"]
     styles = script.get("styles", {})
@@ -160,7 +174,7 @@ def render_utterances(script, voices):
         speaker = script["speakers"][utterance["speaker"]]
         style = styles.get(utterance.get("style", "normal"), {})
         style = style | {"pitch": style.get("pitch", 1.0) * speaker.get("pitch", 1.0)}
-        audio = synthesize(voices[utterance["speaker"]], utterance["text"], sampling_frequency, style)
+        audio = synthesize(kokoro, speaker["voice"], utterance["text"], sampling_frequency, style)
         if "keep" in utterance:
             audio = truncate(audio, utterance["keep"], script["fade_out"], sampling_frequency)
         audio_of[utterance["id"]] = audio
@@ -210,8 +224,12 @@ def normalize(mixed):
 
 
 def write(mixed, sampling_frequency, output_path):
-    """Write the mix as an interleaved multi-channel WAV file."""
-    interleaved = (mixed * np.iinfo(DTYPE).max).astype(DTYPE).reshape(-1)
+    """Write the mix as an interleaved multi-channel WAV file.
+
+    Clipped first: past full scale, the conversion to integers would wrap a
+    sample around to the opposite sign, a crack rather than a flattened peak.
+    """
+    interleaved = (np.clip(mixed, -1.0, 1.0) * np.iinfo(DTYPE).max).astype(DTYPE).reshape(-1)
     with wave.open(str(output_path), "wb") as wav_file:
         wav_file.setnchannels(mixed.shape[1])
         wav_file.setsampwidth(DTYPE().itemsize)
@@ -229,8 +247,8 @@ def main():
         script = yaml.safe_load(script_file)
     output_path = arguments.script.parent / script["output"]
 
-    voices = load_voices(script["speakers"])
-    audio_of = render_utterances(script, voices)
+    kokoro = load_kokoro(script["speakers"])
+    audio_of = render_utterances(script, kokoro)
     onset_of = resolve_onsets(script, audio_of)
     mixed = normalize(mix(script, audio_of, onset_of))
     if "background" in script:

@@ -8,46 +8,42 @@ styles:
     volume: 0.45
     pitch: 1.05
     drive: 1.8
-    noise: 0.75
-    noise_w: 0.9
     normalize: false
   shout:
     volume: 1.0
     rate: 0.9
     pitch: 1.12
     drive: 3.5
-    noise: 0.85
-    noise_w: 1.0
     normalize: false
   mutter:
     volume: 0.25
     rate: 1.04
     pitch: 1.0
     drive: 1.2
-    noise: 0.7
-    noise_w: 0.85
     normalize: false
 
+# Kokoro voices: the first letter is the accent (a American, b British), the
+# second the voice (f female, m male). Every one is Apache-2.0.
 speakers:
   nova:
     channel: 0
-    voice: en_US-ryan-medium
+    voice: am_adam
     pitch: 1.25
   rook:
     channel: 1
-    voice: en_GB-alan-medium
+    voice: bm_lewis
     pitch: 1.35
   tank:
     channel: 2
-    voice: en_US-danny-low
+    voice: am_fenrir
     pitch: 1.3
   pixel:
     channel: 3
-    voice: en_GB-cori-medium
+    voice: bf_emma
     pitch: 1.0
   zed:
     channel: 4
-    voice: en_US-joe-medium
+    voice: am_puck
     pitch: 1.35
 
 utterances:
@@ -281,7 +277,8 @@ utterances:
 
 background:
   channel: 5
-  level: 0.5
+  # Relative to the voices' peak, so 1.4 peaks at 0.98: as loud as it goes unclipped.
+  level: 1.4
   seed: 0
   ambience:
     level: 0.22
