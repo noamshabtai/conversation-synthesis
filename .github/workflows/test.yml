@@ -1,0 +1,42 @@
+name: Tests and Checks
+
+# Pull requests, as in the other repositories, and main itself: its first
+# commits are pushed there directly.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # kokoro-onnx supports no Python past 3.13 yet.
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: Install dependencies
+      run: |
+        uv sync
+
+    - name: Fix pre-commit for GitHub Actions
+      run: |
+        sed -i 's/git@github.com:/https:\/\/github.com\//g' .pre-commit-config.yaml
+
+    - name: Run pre-commit hooks (except pytest)
+      run: |
+        SKIP=pytest uv run pre-commit run --all-files
+
+    # Kokoro is faked in the tests, so no model is downloaded here.
+    - name: Run tests
+      run: |
+        uv run pytest

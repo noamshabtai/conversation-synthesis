@@ -1,21 +1,15 @@
-# /// script
-# requires-python = ">=3.10,<3.14"
-# dependencies = ["kokoro-onnx>=0.4", "numpy", "pyyaml", "scipy"]
-# ///
-"""Render a multi-talker script into a multi-channel demo input.
+"""Render a multi-talker script into a multi-channel recording.
 
 Voices are Kokoro's (Apache-2.0, trained only on permissively licensed audio),
-so the result may be published, commercially too. kokoro-onnx supports no
-Python past 3.13 yet, so this script carries its own requirements above and
-`uv run scripts/create_input.py` runs it apart from the project's 3.14.
+so the result may be published, commercially too.
 
 Each participant is synthesized separately and written to its own channel, as
 if every leg of the call had been recorded locally. Channels therefore contain
 no crosstalk: a channel is silent unless its own speaker is talking.
 
-The script to render is given on the command line, and names its own output file:
-`conference.yaml` for the calm three-party call, `gaming.yaml` for the
-five-player squad that shouts over each other.
+The scene is given on the command line, by name for the ones shipped here
+(`conference`, the calm three-party call; `gaming`, the five-player squad that
+shouts over each other) or by the path of a YAML file of your own.
 
 A script may also carry a `background` section, in which case the game the
 players are talking over is synthesized onto a channel of its own — see
@@ -23,20 +17,20 @@ players are talking over is synthesized onto a channel of its own — see
 """
 
 import argparse
+import os
 import pathlib
 import shutil
 import urllib.parse
 import urllib.request
 import wave
 
-import game_background
 import numpy as np
 import scipy.signal
 import yaml
 
-SCRIPT_DIR = pathlib.Path(__file__).parent
-DEFAULT_SCRIPT_PATH = SCRIPT_DIR / "conference.yaml"
-VOICES_DIR = SCRIPT_DIR / "voices"
+from conversation_synthesis import game_background
+
+SCENES_DIR = pathlib.Path(__file__).parent / "scenes"
 MODEL_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
 MODEL_FILE = "kokoro-v1.0.onnx"
 VOICES_FILE = "voices-v1.0.bin"
@@ -47,6 +41,31 @@ PEAK = 0.7
 PITCH_RESOLUTION = 100
 DOWNLOAD_ATTEMPTS = 3
 DOWNLOAD_TIMEOUT = 30
+
+
+def cache_dir():
+    """Where Kokoro's model is kept between runs: about 350 MB, fetched once.
+
+    CONVERSATION_SYNTHESIS_CACHE overrides it, as a CI cache step would.
+    """
+    if "CONVERSATION_SYNTHESIS_CACHE" in os.environ:
+        return pathlib.Path(os.environ["CONVERSATION_SYNTHESIS_CACHE"])
+    base = os.environ.get("XDG_CACHE_HOME") or pathlib.Path.home() / ".cache"
+    return pathlib.Path(base) / "conversation-synthesis"
+
+
+def scene_path(scene):
+    """A scene shipped here, by name, or a YAML file, by path."""
+    path = pathlib.Path(scene)
+    if path.suffix in (".yaml", ".yml"):
+        if not path.is_file():
+            raise FileNotFoundError(f"No scene file at {path}")
+        return path
+    shipped = SCENES_DIR / f"{scene}.yaml"
+    if not shipped.is_file():
+        names = ", ".join(sorted(one.stem for one in SCENES_DIR.glob("*.yaml")))
+        raise FileNotFoundError(f"No scene named {scene}: the shipped ones are {names}, or give a .yaml path")
+    return shipped
 
 
 def model_url(name):
@@ -68,7 +87,7 @@ def download(name):
     much as the retry: without it a stalled transfer never raises, so the whole
     render just hangs on a half-written model.
     """
-    path = VOICES_DIR / name
+    path = cache_dir() / name
     for attempt in range(DOWNLOAD_ATTEMPTS):
         try:
             with urllib.request.urlopen(model_url(name), timeout=DOWNLOAD_TIMEOUT) as response:  # noqa: S310
@@ -104,7 +123,7 @@ def load_kokoro(speakers):
     """
     from kokoro_onnx import Kokoro  # noqa: PLC0415 -- only rendering needs it
 
-    VOICES_DIR.mkdir(exist_ok=True)
+    cache_dir().mkdir(parents=True, exist_ok=True)
     kokoro = Kokoro(str(download(MODEL_FILE)), str(download(VOICES_FILE)))
     known = set(kokoro.get_voices())
     for name, speaker in speakers.items():
@@ -237,15 +256,17 @@ def write(mixed, sampling_frequency, output_path):
         wav_file.writeframes(interleaved.tobytes())
 
 
-def main():
-    """Synthesize a multi-talker script into a multi-channel WAV file."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("script", nargs="?", default=DEFAULT_SCRIPT_PATH, type=pathlib.Path)
-    arguments = parser.parse_args()
+def main(argv=None):
+    """Synthesize a multi-talker scene into a multi-channel WAV file."""
+    parser = argparse.ArgumentParser(prog="synthesize-conversation", description=__doc__)
+    parser.add_argument("scene", help="a shipped scene's name (conference, gaming) or a .yaml path")
+    parser.add_argument("--output", type=pathlib.Path, help="where to write the WAV; <scene>.wav here by default")
+    arguments = parser.parse_args(argv)
 
-    with open(arguments.script, "r") as script_file:
+    path = scene_path(arguments.scene)
+    with open(path, "r") as script_file:
         script = yaml.safe_load(script_file)
-    output_path = arguments.script.parent / script["output"]
+    output_path = arguments.output or pathlib.Path(f"{path.stem}.wav")
 
     kokoro = load_kokoro(script["speakers"])
     audio_of = render_utterances(script, kokoro)

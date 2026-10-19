@@ -1,0 +1,50 @@
+repos:
+  - repo: git@github.com:pre-commit/pre-commit-hooks.git
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: git@github.com:psf/black.git
+    rev: 25.1.0
+    hooks:
+      - id: black
+        name: Black code formatter
+        args: [--line-length=120]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.9.6"
+    hooks:
+      - id: ruff
+        name: ruff (test)
+        args:
+          - "--fix"
+          - "--select=PERF,PL,B,S,F,W,E,I,TID"
+          - "--line-length=120"
+          - "--verbose"
+          - "--ignore=S101,PLR2004,PLW0603,PLW0602"
+        files: ^.*(test.*\.py|.*test\.py)$
+
+      - id: ruff
+        name: ruff (normal)
+        args:
+          - "--fix"
+          - "--select=PERF,PL,B,S,F,W,E,I,TID"
+          - "--line-length=120"
+          - "--verbose"
+          - "--ignore=PLR2004,PLW0603,PLW0602"
+        exclude: ^.*(test.*\.py|.*test\.py)$
+
+
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+        files: ^.*(test_.*\.py|.*_test\.py)$
+        pass_filenames: false
+        always_run: true

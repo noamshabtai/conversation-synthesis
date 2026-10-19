@@ -1,5 +1,4 @@
 
-output: ../conference_input.wav
 sampling_frequency: 16000
 fade_out: 0.05
 
